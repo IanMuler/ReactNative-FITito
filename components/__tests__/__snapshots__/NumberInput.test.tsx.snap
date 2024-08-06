@@ -1,0 +1,108 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NumberInput renders correctly with default value 1`] = `
+<View
+  style={
+    {
+      "alignItems": "center",
+      "backgroundColor": "#293048",
+      "borderRadius": 5,
+      "flex": 1,
+      "flexDirection": "row",
+      "height": 40,
+      "justifyContent": "space-between",
+      "paddingHorizontal": 5,
+    }
+  }
+>
+  <View
+    accessibilityState={
+      {
+        "busy": undefined,
+        "checked": undefined,
+        "disabled": undefined,
+        "expanded": undefined,
+        "selected": undefined,
+      }
+    }
+    accessibilityValue={
+      {
+        "max": undefined,
+        "min": undefined,
+        "now": undefined,
+        "text": undefined,
+      }
+    }
+    accessible={true}
+    collapsable={false}
+    focusable={true}
+    onClick={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderRelease={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    style={
+      {
+        "opacity": 1,
+      }
+    }
+    testID="decrement-button"
+  >
+    <Text />
+  </View>
+  <TextInput
+    keyboardType="numeric"
+    onChangeText={[Function]}
+    placeholderTextColor="#A5A5A5"
+    style={
+      {
+        "color": "#FFFFFF",
+        "flex": 1,
+        "fontSize": 16,
+        "textAlign": "center",
+      }
+    }
+    testID="number-input"
+    value="10"
+  />
+  <View
+    accessibilityState={
+      {
+        "busy": undefined,
+        "checked": undefined,
+        "disabled": undefined,
+        "expanded": undefined,
+        "selected": undefined,
+      }
+    }
+    accessibilityValue={
+      {
+        "max": undefined,
+        "min": undefined,
+        "now": undefined,
+        "text": undefined,
+      }
+    }
+    accessible={true}
+    collapsable={false}
+    focusable={true}
+    onClick={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderRelease={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    style={
+      {
+        "opacity": 1,
+      }
+    }
+    testID="increment-button"
+  >
+    <Text />
+  </View>
+</View>
+`;

@@ -1,9 +1,9 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { TabBarIcon } from '@/components/navigation/TabBarIcon';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+// app/(tabs)/_layout.tsx
+import React from "react";
+import { Tabs } from "expo-router";
+import { TabBarIcon } from "@/components/navigation/TabBarIcon";
+import { Colors } from "@/constants/Colors";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -11,24 +11,55 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarInactiveTintColor: "#A5A5A5",
+        tabBarStyle: {
+          backgroundColor: "#121623",
+          borderTopColor: "#121623",
+          paddingBottom: 5,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+        },
         headerShown: false,
-      }}>
+      }}
+    >
+      {/* "redirect" is a special screen that redirects to the first screen in the list */}
+      {/* This is useful for setting the index screen of a tab navigator */}
+      <Tabs.Screen name="index" redirect />
       <Tabs.Screen
-        name="index"
+        name="rutina"
         options={{
-          title: 'Home',
+          title: "Rutinas",
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'home' : 'home-outline'} color={color} />
+            <TabBarIcon
+              name={focused ? "calendar" : "calendar-outline"}
+              color={color}
+            />
           ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="dias-entreno"
         options={{
-          title: 'Explore',
+          title: "Días de entreno",
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'code-slash' : 'code-slash-outline'} color={color} />
+            <TabBarIcon
+              name={focused ? "walk" : "walk-outline"}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="ejercicios"
+        options={{
+          title: "Ejercicios",
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon
+              name={focused ? "barbell" : "barbell-outline"}
+              color={color}
+            />
           ),
         }}
       />
