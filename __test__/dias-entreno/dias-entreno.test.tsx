@@ -10,13 +10,13 @@
 */
 
 // __tests__/dias-entreno.test.tsx
-
 import React from "react";
 import { render, waitFor, fireEvent, screen } from "@testing-library/react-native";
 import { NavigationContainer } from "@react-navigation/native";
-import TrainingDaysScreen from "@/app/(tabs)/dias-entreno"; // Adjust the path if necessary
+import TrainingDaysScreen from "@/app/(tabs)/dias-entreno"; // Ajusta la ruta si es necesario
 import StorageService, { StorageKey } from "@/services/storage";
 import { useRouter } from 'expo-router';
+import { PortalProvider } from '@gorhom/portal';
 
 jest.mock("@/services/storage");
 jest.mock('expo-router', () => ({
@@ -54,11 +54,13 @@ describe("TrainingDaysScreen", () => {
         (StorageService.save as jest.Mock).mockImplementation(mockStorageService.save);
     });
 
-    // Needed to use UseFocusEffect from react-navigation
+    // Necesario para usar UseFocusEffect de react-navigation
     const renderWithProviders = (component: JSX.Element) => {
         return render(
             <NavigationContainer>
-                {component}
+                <PortalProvider>
+                    {component}
+                </PortalProvider>
             </NavigationContainer>
         );
     };
@@ -94,10 +96,8 @@ describe("TrainingDaysScreen", () => {
         fireEvent.press(screen.getAllByTestId("ellipsis-vertical")[0]);
 
         await waitFor(() => {
-            const editButtons = screen.getAllByText("Editar");
-            const deleteButtons = screen.getAllByText("Eliminar");
-            expect(editButtons.length).toBeGreaterThan(0);
-            expect(deleteButtons.length).toBeGreaterThan(0);
+            expect(screen.getByTestId("menu-option-edit-Training Day 1")).toBeTruthy();
+            expect(screen.getByTestId("menu-option-delete-Training Day 1")).toBeTruthy();
         });
     });
 
@@ -111,7 +111,7 @@ describe("TrainingDaysScreen", () => {
         fireEvent.press(screen.getAllByTestId("ellipsis-vertical")[0]);
 
         await waitFor(() => {
-            fireEvent.press(screen.getAllByText("Editar")[0]);
+            fireEvent.press(screen.getByTestId("menu-option-edit-Training Day 1"));
         });
 
         await waitFor(() => {
@@ -131,7 +131,7 @@ describe("TrainingDaysScreen", () => {
         });
 
         fireEvent.press(screen.getAllByTestId("ellipsis-vertical")[0]);
-        fireEvent.press(screen.getByTestId("menu-option-Eliminar"));
+        fireEvent.press(screen.getByTestId("menu-option-delete-Training Day 1"));
         fireEvent.press(screen.getByTestId("confirm-delete"));
 
         await waitFor(() => {

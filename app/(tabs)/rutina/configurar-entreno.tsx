@@ -1,3 +1,5 @@
+// app/(tabs)/rutina/configurar-entreno.tsx
+
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -5,7 +7,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  TextInput,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import RadialGradientBackground from "@/components/RadialGradientBackground";
@@ -21,6 +22,7 @@ export type ExerciseDetail = {
 
 const ConfigureTrainingDayScreen = () => {
   const [exerciseDetails, setExerciseDetails] = useState<ExerciseDetail[]>([]);
+  const [isSaveEnabled, setIsSaveEnabled] = useState(false);
   const router = useRouter();
   const { dayName, trainingDayName } = useLocalSearchParams();
 
@@ -48,6 +50,22 @@ const ConfigureTrainingDayScreen = () => {
 
     loadTrainingDayDetails();
   }, [dayName, trainingDayName]);
+
+  useEffect(() => {
+    checkIfAllInputsAreFilled();
+  }, [exerciseDetails]);
+
+  const checkIfAllInputsAreFilled = () => {
+    for (const exercise of exerciseDetails) {
+      for (const set of exercise.sets) {
+        if (!set.reps || !set.weight) {
+          setIsSaveEnabled(false);
+          return;
+        }
+      }
+    }
+    setIsSaveEnabled(true);
+  };
 
   const handleSave = async () => {
     const routineDays = await StorageService.load("routineDays");
@@ -90,14 +108,14 @@ const ConfigureTrainingDayScreen = () => {
     <View style={styles.container}>
       <RadialGradientBackground />
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        <Text style={styles.title}>
+        <Text style={styles.title} testID="config-title">
           Configurar {trainingDayName} para {dayName}
         </Text>
         {exerciseDetails.map((exercise, exerciseIndex) => (
-          <View key={exerciseIndex} style={styles.exerciseContainer}>
-            <Text style={styles.exerciseName}>{exercise.name}</Text>
+          <View key={exerciseIndex} style={styles.exerciseContainer} testID={`exercise-${exercise.name}`}>
+            <Text style={styles.exerciseName} testID={`exercise-name-${exercise.name}`}>{exercise.name}</Text>
             {exercise.sets.map((set, setIndex) => (
-              <View key={setIndex} style={styles.setRow}>
+              <View key={setIndex} style={styles.setRow} testID={`exercise-set-${exercise.name}-${setIndex}`}>
                 <Text style={styles.setText}>Set {setIndex + 1}</Text>
                 <NumberInput
                   value={set.reps}
@@ -105,6 +123,7 @@ const ConfigureTrainingDayScreen = () => {
                     updateExerciseDetail(exerciseIndex, setIndex, "reps", text)
                   }
                   placeholder="Reps"
+                  testID={`input-reps-${exercise.name}-${setIndex}`}
                 />
                 <NumberInput
                   value={set.weight}
@@ -117,6 +136,7 @@ const ConfigureTrainingDayScreen = () => {
                     )
                   }
                   placeholder="Peso"
+                  testID={`input-weight-${exercise.name}-${setIndex}`}
                 />
               </View>
             ))}
@@ -124,6 +144,7 @@ const ConfigureTrainingDayScreen = () => {
               <TouchableOpacity
                 style={styles.addButton}
                 onPress={() => addSet(exerciseIndex)}
+                testID={`button-add-set-${exercise.name}`}
               >
                 <Ionicons name="add" size={24} color="#FFFFFF" />
               </TouchableOpacity>
@@ -131,6 +152,7 @@ const ConfigureTrainingDayScreen = () => {
                 <TouchableOpacity
                   style={styles.removeButton}
                   onPress={() => removeSet(exerciseIndex)}
+                  testID={`button-remove-set-${exercise.name}`}
                 >
                   <Ionicons name="remove" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
@@ -138,7 +160,12 @@ const ConfigureTrainingDayScreen = () => {
             </View>
           </View>
         ))}
-        <TouchableOpacity style={styles.button} onPress={handleSave}>
+        <TouchableOpacity
+          style={[styles.button, !isSaveEnabled && styles.disabledButton]}
+          onPress={handleSave}
+          disabled={!isSaveEnabled}
+          testID="button-save"
+        >
           <Text style={styles.buttonText}>Guardar día de rutina</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -198,7 +225,6 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     backgroundColor: "#2979FF",
-
     width: 40,
     height: 40,
     borderRadius: 50,
@@ -216,6 +242,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     marginTop: 20,
+  },
+  disabledButton: {
+    backgroundColor: "#A5A5A5", // Color para el botón deshabilitado
   },
   buttonText: {
     color: "#FFFFFF",

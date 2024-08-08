@@ -101,7 +101,7 @@ const TrainingSessionScreen = () => {
       <RadialGradientBackground />
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <View style={styles.header}>
-          <Text style={styles.dayText}>{day?.trainingDayName}</Text>
+          <Text style={styles.dayText} testID="training-day-name">{day?.trainingDayName}</Text>
           <Text style={styles.dateText}>{new Date().toLocaleDateString()}</Text>
         </View>
         {currentExercise && (
@@ -111,6 +111,7 @@ const TrainingSessionScreen = () => {
             <Image
               source={{ uri: currentExercise.image }}
               style={styles.exerciseImage}
+              testID={`exercise-image-${currentExercise.name}`}
             />
             <View style={styles.setsContainer}>
               {currentExercise.sets.map((set, setIndex) => (
@@ -130,6 +131,7 @@ const TrainingSessionScreen = () => {
                       }
                       placeholder="Reps"
                       defaultValue={set.reps}
+                      testID={`input-reps-${currentExercise.name}-${setIndex}`}
                     />
                   </View>
                   <View style={{ flex: 1, gap: 5 }}>
@@ -146,6 +148,7 @@ const TrainingSessionScreen = () => {
                       }
                       placeholder="Peso"
                       defaultValue={set.weight}
+                      testID={`input-weight-${currentExercise.name}-${setIndex}`}
                     />
                   </View>
                 </View>
@@ -163,11 +166,12 @@ const TrainingSessionScreen = () => {
             onPress={() =>
               setCurrentExerciseIndex((prevIndex) => Math.max(prevIndex - 1, 0))
             }
+            testID="button-previous"
           >
             <Text style={styles.buttonText}>Anterior</Text>
           </TouchableOpacity>
           {currentExerciseIndex === exerciseDetails.length - 1 ? (
-            <TouchableOpacity style={styles.button} onPress={handleSave}>
+            <TouchableOpacity style={styles.button} onPress={handleSave} testID="button-finish">
               <Text style={styles.buttonText}>Finalizar sesión</Text>
             </TouchableOpacity>
           ) : (
@@ -178,6 +182,7 @@ const TrainingSessionScreen = () => {
                   Math.min(prevIndex + 1, exerciseDetails.length - 1)
                 )
               }
+              testID="button-next"
             >
               <Text style={styles.buttonText}>Siguiente</Text>
             </TouchableOpacity>

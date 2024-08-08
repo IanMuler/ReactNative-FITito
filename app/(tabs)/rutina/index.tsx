@@ -7,16 +7,16 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import RadialGradientBackground from "@/components/RadialGradientBackground";
 import LinearGradientItem from "@/components/LinearGradientItem";
 import StorageService from "@/services/storage";
 import * as Font from "expo-font";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { currentDayIndex, monthNames } from "@/constants/Dates";
 import { ExerciseDetail } from "./configurar-entreno";
-import MenuPopup from "@/components/MenuPopup";
+import Menu, { MenuItem } from "@/components/Menu";
+import { useFocusEffect } from "@react-navigation/native";
 
 export type Day = {
   name: string;
@@ -39,8 +39,6 @@ const daysOfWeek: Day[] = [
 const RoutineScreen = () => {
   const [days, setDays] = useState<Day[]>(daysOfWeek);
   const [iconsLoaded, setIconsLoaded] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<Day | null>(null);
-  const [menuVisible, setMenuVisible] = useState(false);
   const router = useRouter();
 
   const currentWeek = Math.ceil(new Date().getDate() / 7);
@@ -132,8 +130,18 @@ const RoutineScreen = () => {
         ? "Sesión finalizada"
         : "Empezar sesión";
 
+  const options = (day: Day) =>
+    [
+      { label: day.rest ? "Día de rutina" : "Día de descanso", onPress: () => toggleRestDay(day), testID: `menu-option-toggle-rest-${day.name}` },
+      { label: "Asignar entreno", onPress: () => assignTrainingDay(day), testID: `menu-option-assign-${day.name}` },
+      ...(day.trainingDayName ? [
+        { label: "Editar entreno", onPress: () => editTrainingDay(day), testID: `menu-option-edit-${day.name}` },
+        { label: "Remover entreno", onPress: () => removeTrainingDay(day), testID: `menu-option-remove-${day.name}` },
+      ] : []),
+    ]
+
   return (
-    <GestureHandlerRootView style={styles.container}>
+    <View style={styles.container} testID="routine-screen">
       <RadialGradientBackground />
       <View style={styles.header}>
         <Text style={styles.title}>Rutina</Text>
@@ -146,14 +154,14 @@ const RoutineScreen = () => {
           <LinearGradientItem
             key={index}
             styles={{
-              dayContainer: { ...styles.dayContainer, zIndex: selectedDay === day ? 1 : 0 },
+              dayContainer: styles.dayContainer,
               restDayContainer: styles.restDayContainer,
               activeContainer: styles.activeDayContainer,
             }}
             day={day}
             isActive={currentDayIndex === index}
           >
-            <View style={[styles.dayInnerContainer]}>
+            <View style={[styles.dayInnerContainer]} testID={`day-${day.name}`}>
               <View>
                 <Text
                   style={[
@@ -172,38 +180,23 @@ const RoutineScreen = () => {
               </View>
               <View style={{ flexDirection: "row", gap: 10 }}>
                 {day.completed && (
-                  <TouchableOpacity onPress={() => handleDayPress(index)}>
+                  <TouchableOpacity onPress={() => handleDayPress(index)} testID={`day-completed-${day.name}`}>
                     <Ionicons name={"book"} size={24} color="#FFFFFF" />
                   </TouchableOpacity>
                 )}
                 <View style={styles.ellipsisContainer}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setSelectedDay(day);
-                      setMenuVisible(true);
-                    }}
-                  >
+                  <Menu trigger={
                     <Ionicons
                       name="ellipsis-vertical"
                       size={24}
                       color="#FFFFFF"
-                    />
-                  </TouchableOpacity>
-                  {selectedDay === day && (
-                    <MenuPopup
-                      visible={menuVisible}
-                      onClose={() => setMenuVisible(false)}
-                      options={[
-                        { label: day.rest ? "Día de rutina" : "Día de descanso", onPress: () => toggleRestDay(day) },
-                        { label: "Asignar entreno", onPress: () => assignTrainingDay(day) },
-                        ...(day.trainingDayName ? [
-                          { label: "Editar entreno", onPress: () => editTrainingDay(day) },
-                          { label: "Remover entreno", onPress: () => removeTrainingDay(day) },
-                        ] : []),
-                      ]}
-                      renderTowards={index < days.length / 2 ? "top" : "bottom"}
-                    />
-                  )}
+                      testID={`ellipsis-vertical-${day.name}`}
+                    />}
+                  >
+                    {options(day).map((option, index) => (
+                      <MenuItem key={index} text={option.label} onPress={option.onPress} testID={option.testID} />
+                    ))}
+                  </Menu>
                 </View>
               </View>
             </View>
@@ -214,6 +207,7 @@ const RoutineScreen = () => {
         style={[styles.button, isSessionDisabled && styles.disabledButton]}
         onPress={() => router.push("/(tabs)/rutina/sesion-de-entrenamiento")}
         disabled={isSessionDisabled}
+        testID="button-start-session"
       >
         <Text style={styles.buttonText}>{ButtonText}</Text>
       </TouchableOpacity>
@@ -221,11 +215,12 @@ const RoutineScreen = () => {
         <TouchableOpacity
           style={styles.floatingButton}
           onPress={() => router.push("/(tabs)/rutina/management")}
+          testID="button-settings"
         >
           <Ionicons name="settings" size={24} color="white" />
         </TouchableOpacity>
       )}
-    </GestureHandlerRootView>
+    </View>
   );
 };
 

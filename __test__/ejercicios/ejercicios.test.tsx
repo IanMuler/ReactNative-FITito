@@ -14,6 +14,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import ExercisesScreen from "@/app/(tabs)/ejercicios"; // Adjust the path if necessary
 import StorageService, { StorageKey } from "@/services/storage";
 import { useRouter } from 'expo-router';
+import { PortalProvider } from "@gorhom/portal";
 
 jest.mock("@/services/storage");
 jest.mock('expo-router', () => ({
@@ -53,7 +54,9 @@ describe("ExercisesScreen", () => {
     const renderWithProviders = (component: JSX.Element) => {
         return render(
             <NavigationContainer>
-                {component}
+                <PortalProvider>
+                    {component}
+                </PortalProvider>
             </NavigationContainer>
         );
     };
@@ -126,7 +129,7 @@ describe("ExercisesScreen", () => {
         });
 
         fireEvent.press(screen.getAllByTestId("ellipsis-vertical")[0]);
-        fireEvent.press(screen.getByTestId("menu-option-Eliminar"));
+        fireEvent.press(screen.getByTestId("menu-option-delete"));
         fireEvent.press(screen.getByTestId("confirm-delete"));
 
         await waitFor(() => {

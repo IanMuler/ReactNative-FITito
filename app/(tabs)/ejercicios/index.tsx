@@ -15,7 +15,7 @@ import RadialGradientBackground from "@/components/RadialGradientBackground";
 import { useRouter } from "expo-router";
 import StorageService from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
-import MenuPopup from "@/components/MenuPopup";
+import Menu, { MenuItem } from "@/components/Menu";
 
 export type Exercise = {
   name: string;
@@ -24,11 +24,8 @@ export type Exercise = {
 
 const ExercisesScreen = () => {
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
-    null
-  );
   const [modalVisible, setModalVisible] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
+  const [exerciseToDelete, setExerciseToDelete] = useState<Exercise | null>(null);
   const router = useRouter();
 
   const loadExercises = async () => {
@@ -45,29 +42,26 @@ const ExercisesScreen = () => {
   );
 
   const deleteExercise = async () => {
-    if (selectedExercise) {
+    if (exerciseToDelete) {
       const updatedExercises = exercises.filter(
-        (exercise) => exercise.name !== selectedExercise.name
+        (exercise) => exercise.name !== exerciseToDelete.name
       );
       setExercises(updatedExercises);
       await StorageService.save("exercises", updatedExercises);
       setModalVisible(false);
-      setMenuVisible(false);  // Asegúrate de cerrar el menú también
     }
   };
 
-  const handleEditExercise = () => {
+  const handleEditExercise = (exercise: Exercise) => {
     router.push({
       pathname: "/ejercicios/anadir-ejercicio",
-      params: { name: selectedExercise?.name, image: selectedExercise?.image },
+      params: { name: exercise.name, image: exercise.image },
     });
-    setModalVisible(false);
-    setMenuVisible(false);  // Asegúrate de cerrar el menú también
   };
 
-  const options = [
-    { label: "Editar", onPress: handleEditExercise },
-    { label: "Eliminar", onPress: () => setModalVisible(true) },
+  const options = (exercise: Exercise) => [
+    { label: "Editar", onPress: () => handleEditExercise(exercise), testID: "menu-option-edit" },
+    { label: "Eliminar", onPress: () => { setExerciseToDelete(exercise); setModalVisible(true); }, testID: "menu-option-delete" },
   ];
 
   return (
@@ -91,22 +85,18 @@ const ExercisesScreen = () => {
                 <Text style={styles.exerciseText}>{exercise.name}</Text>
               </View>
               <View style={styles.ellipsisContainer}>
-                <TouchableOpacity
-                  testID="ellipsis-vertical"
-                  onPress={() => {
-                    setSelectedExercise(exercise);
-                    setMenuVisible(true);
-                  }}
+                <Menu trigger={
+                  <Ionicons
+                    name="ellipsis-vertical"
+                    size={24}
+                    color="#FFFFFF"
+                    testID="ellipsis-vertical"
+                  />}
                 >
-                  <Ionicons name="ellipsis-vertical" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-                {selectedExercise === exercise && (
-                  <MenuPopup
-                    visible={menuVisible}
-                    onClose={() => setMenuVisible(false)}
-                    options={options}
-                  />
-                )}
+                  {options(exercise).map((option, index) => (
+                    <MenuItem key={index} text={option.label} onPress={option.onPress} testID={option.testID} />
+                  ))}
+                </Menu>
               </View>
             </View>
           </LinearGradientItem>
@@ -119,7 +109,7 @@ const ExercisesScreen = () => {
         <Text style={styles.buttonText}>Añadir</Text>
       </TouchableOpacity>
 
-      {selectedExercise && (
+      {exerciseToDelete && (
         <Modal
           transparent={true}
           visible={modalVisible}

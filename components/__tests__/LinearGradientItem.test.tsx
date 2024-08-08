@@ -5,6 +5,7 @@
  * - Renders children correctly within LinearGradientItem
  */
 
+// components/__tests__/LinearGradientItem.test.tsx
 import React from "react";
 import { render } from "@testing-library/react-native";
 import LinearGradientItem from "../LinearGradientItem";

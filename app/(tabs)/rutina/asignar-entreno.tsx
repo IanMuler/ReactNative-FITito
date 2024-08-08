@@ -1,4 +1,4 @@
-// app/(tabs)/rutina/[dayName].tsx
+// app/(tabs)/rutina/asignar-entreno.tsx
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -36,10 +36,10 @@ const AssignTrainingDayScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="assign-training-day-screen">
       <RadialGradientBackground />
       <View style={styles.header}>
-        <Text style={styles.title}>Asignar entreno a {dayName}</Text>
+        <Text style={styles.title} testID="assign-training-day-title">Asignar entreno a {dayName}</Text>
       </View>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         {trainingDays.map((trainingDay, index) => (
@@ -47,6 +47,7 @@ const AssignTrainingDayScreen = () => {
             key={index}
             style={styles.trainingDayContainer}
             onPress={() => assignTrainingDay(trainingDay)}
+            testID={`training-day-${trainingDay.name}`}
           >
             <Text style={styles.trainingDayText}>{trainingDay.name}</Text>
           </TouchableOpacity>

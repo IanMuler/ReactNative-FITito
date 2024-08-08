@@ -22,13 +22,13 @@ type MonthName =
   | "Diciembre";
 
 export const dayNames: DayName[] = [
-  "Domingo",
   "Lunes",
   "Martes",
   "Miércoles",
   "Jueves",
   "Viernes",
   "Sábado",
+  "Domingo",
 ];
 
 export const monthNames: MonthName[] = [

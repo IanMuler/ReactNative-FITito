@@ -14,7 +14,7 @@ import RadialGradientBackground from "@/components/RadialGradientBackground";
 import StorageService from "@/services/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import MenuPopup from "@/components/MenuPopup";
+import Menu, { MenuItem } from "@/components/Menu";
 
 export type TrainingDay = {
   name: string;
@@ -23,9 +23,8 @@ export type TrainingDay = {
 
 const TrainingDaysScreen = () => {
   const [trainingDays, setTrainingDays] = useState<TrainingDay[]>([]);
-  const [selectedDay, setSelectedDay] = useState<TrainingDay | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
+  const [dayToDelete, setDayToDelete] = useState<TrainingDay | null>(null);
   const router = useRouter();
 
   const loadTrainingDays = async () => {
@@ -36,27 +35,24 @@ const TrainingDaysScreen = () => {
   };
 
   const deleteTrainingDay = async () => {
-    if (selectedDay) {
-      const updatedDays = trainingDays.filter((day) => day !== selectedDay);
+    if (dayToDelete) {
+      const updatedDays = trainingDays.filter((day) => day !== dayToDelete);
       setTrainingDays(updatedDays);
       await StorageService.save("trainingDays", updatedDays);
       setModalVisible(false);
-      setMenuVisible(false); // Ensure the menu is closed
     }
   };
 
-  const handleEditTrainingDay = () => {
+  const handleEditTrainingDay = (day: TrainingDay) => {
     router.push({
       pathname: "/dias-entreno/anadir-dia",
-      params: { name: selectedDay?.name },
+      params: { name: day.name },
     });
-    setModalVisible(false);
-    setMenuVisible(false); // Ensure the menu is closed
   };
 
-  const options = [
-    { label: "Editar", onPress: handleEditTrainingDay },
-    { label: "Eliminar", onPress: () => setModalVisible(true) },
+  const options = (day: TrainingDay) => [
+    { label: "Editar", onPress: () => handleEditTrainingDay(day), testID: `menu-option-edit-${day.name}` },
+    { label: "Eliminar", onPress: () => { setDayToDelete(day); setModalVisible(true); }, testID: `menu-option-delete-${day.name}` },
   ];
 
   useFocusEffect(
@@ -80,22 +76,18 @@ const TrainingDaysScreen = () => {
             <View style={styles.dayContent} testID={`training-day-${day.name}`}>
               <Text style={styles.dayText}>{day.name}</Text>
               <View style={styles.ellipsisContainer}>
-                <TouchableOpacity
-                  testID="ellipsis-vertical"
-                  onPress={() => {
-                    setSelectedDay(day);
-                    setMenuVisible(true);
-                  }}
+                <Menu trigger={
+                  <Ionicons
+                    name="ellipsis-vertical"
+                    size={24}
+                    color="#FFFFFF"
+                    testID="ellipsis-vertical"
+                  />}
                 >
-                  <Ionicons name="ellipsis-vertical" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-                {selectedDay === day && (
-                  <MenuPopup
-                    visible={menuVisible}
-                    onClose={() => setMenuVisible(false)}
-                    options={options}
-                  />
-                )}
+                  {options(day).map((option, index) => (
+                    <MenuItem key={index} text={option.label} onPress={option.onPress} testID={option.testID} />
+                  ))}
+                </Menu>
               </View>
             </View>
           </LinearGradientItem>
@@ -109,7 +101,7 @@ const TrainingDaysScreen = () => {
         <Text style={styles.buttonText}>Añadir</Text>
       </TouchableOpacity>
 
-      {selectedDay && (
+      {dayToDelete && (
         <Modal
           transparent={true}
           visible={modalVisible}

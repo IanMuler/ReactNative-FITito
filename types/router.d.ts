@@ -11,6 +11,7 @@ declare module "expo-router" {
         | ""
         | "/"
         | "/(tabs)"
+        | "/(tabs)/rutina"
         | "/(tabs)/rutina/asignar-entreno"
         | "/(tabs)/rutina/configurar-entreno"
         | "/(tabs)/rutina/historico"

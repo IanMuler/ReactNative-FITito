@@ -1,3 +1,5 @@
+// components/NumberInput.tsx
+
 import React, { useState, useEffect } from "react";
 import { View, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,6 +9,7 @@ type NumberInputProps = {
   onChangeText: (text: string) => void;
   placeholder?: string;
   defaultValue?: string;
+  testID?: string;
 };
 
 const NumberInput = ({
@@ -14,6 +17,7 @@ const NumberInput = ({
   onChangeText,
   placeholder,
   defaultValue,
+  testID,
 }: NumberInputProps) => {
   const [inputValue, setInputValue] = useState(value || "");
 
@@ -50,7 +54,7 @@ const NumberInput = ({
         onChangeText={handleChangeText}
         placeholder={placeholder}
         placeholderTextColor="#A5A5A5"
-        testID="number-input"
+        testID={testID}
       />
       <TouchableOpacity onPress={increment} testID="increment-button">
         <Ionicons name="add-circle-outline" size={24} color="#FFFFFF" />
