@@ -1,3 +1,8 @@
+/* Tests:
+* - should display the title and list of training days
+* - should navigate to configure training day screen on training day press
+*/
+
 // __tests__/asignar-entreno.test.tsx
 import React from "react";
 import { render, waitFor, fireEvent, screen } from "@testing-library/react-native";

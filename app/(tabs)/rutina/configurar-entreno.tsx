@@ -1,5 +1,4 @@
 // app/(tabs)/rutina/configurar-entreno.tsx
-
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -11,18 +10,25 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import RadialGradientBackground from "@/components/RadialGradientBackground";
 import StorageService from "@/services/storage";
-import NumberInput from "@/components/NumberInput"; // Import NumberInput
+import NumberInput from "@/components/NumberInput";
 import { Ionicons } from "@expo/vector-icons";
+import { Picker } from '@react-native-picker/picker';
+
+export type RPDetail = {
+  value: string;
+  time: number;
+};
 
 export type ExerciseDetail = {
   name: string;
-  sets: { reps: string; weight: string }[];
+  sets: { reps: string; weight: string; rir: string; rp?: RPDetail[] }[];
   image: string;
 };
 
 const ConfigureTrainingDayScreen = () => {
   const [exerciseDetails, setExerciseDetails] = useState<ExerciseDetail[]>([]);
   const [isSaveEnabled, setIsSaveEnabled] = useState(false);
+  const [buttonsActive, setButtonsActive] = useState<Record<string, boolean>>({});
   const router = useRouter();
   const { dayName, trainingDayName } = useLocalSearchParams();
 
@@ -32,6 +38,7 @@ const ConfigureTrainingDayScreen = () => {
       const selectedDay = routineDays?.find((day) => day.name === dayName);
       if (selectedDay && selectedDay.trainingDayName === trainingDayName) {
         setExerciseDetails(selectedDay.exerciseDetails || []);
+        initializeRPButtons(selectedDay.exerciseDetails || []);
       } else {
         const savedTrainingDays = await StorageService.load("trainingDays");
         const selectedTrainingDay = savedTrainingDays?.find(
@@ -40,12 +47,25 @@ const ConfigureTrainingDayScreen = () => {
         if (selectedTrainingDay) {
           const details = selectedTrainingDay.exercises?.map((exercise) => ({
             name: exercise.name,
-            sets: [{ reps: "", weight: "" }],
+            sets: [{ reps: "", weight: "", rir: "", rp: [{ value: "", time: 5 }] }],
             image: exercise.image,
           }));
           details && setExerciseDetails(details);
         }
       }
+    };
+
+    const initializeRPButtons = (exerciseDetails: ExerciseDetail[]) => {
+      const initialButtonsActive: Record<string, boolean> = {};
+      exerciseDetails.forEach((exercise, exerciseIndex) => {
+        exercise.sets.forEach((set, setIndex) => {
+          if (set.rp && set.rp.length > 0) {
+            const key = `${exerciseIndex}-${setIndex}`;
+            initialButtonsActive[key] = true; // Activar el botón RP si ya tiene valores
+          }
+        });
+      });
+      setButtonsActive(initialButtonsActive);
     };
 
     loadTrainingDayDetails();
@@ -58,7 +78,7 @@ const ConfigureTrainingDayScreen = () => {
   const checkIfAllInputsAreFilled = () => {
     for (const exercise of exerciseDetails) {
       for (const set of exercise.sets) {
-        if (!set.reps || !set.weight) {
+        if (!set.reps || !set.weight || !set.rir) {
           setIsSaveEnabled(false);
           return;
         }
@@ -81,18 +101,53 @@ const ConfigureTrainingDayScreen = () => {
     exerciseIndex: number,
     setIndex: number,
     key: string,
-    value: string
+    value: string | number,
+    rpIndex?: number
   ) => {
     const updatedDetails = [...exerciseDetails];
     const updatedSets = [...updatedDetails[exerciseIndex].sets];
-    updatedSets[setIndex] = { ...updatedSets[setIndex], [key]: value };
+
+    if (key === "rp" && rpIndex !== undefined) {
+      const updatedRP = [...updatedSets[setIndex].rp || []];
+      updatedRP[rpIndex] = { ...updatedRP[rpIndex], value: value as string };
+      updatedSets[setIndex] = { ...updatedSets[setIndex], rp: updatedRP };
+    } else if (key === "time" && rpIndex !== undefined) {
+      const updatedRP = [...updatedSets[setIndex].rp || []];
+      updatedRP[rpIndex] = { ...updatedRP[rpIndex], time: value as number };
+      updatedSets[setIndex] = { ...updatedSets[setIndex], rp: updatedRP };
+    } else {
+      updatedSets[setIndex] = { ...updatedSets[setIndex], [key]: value };
+    }
+
+    updatedDetails[exerciseIndex].sets = updatedSets;
+    setExerciseDetails(updatedDetails);
+  };
+
+  const toggleRP = (exerciseIndex: number, setIndex: number) => {
+    const key = `${exerciseIndex}-${setIndex}`;
+    setButtonsActive(prevState => ({
+      ...prevState,
+      [key]: !prevState[key],
+    }));
+
+    const updatedDetails = [...exerciseDetails];
+    const updatedSets = [...updatedDetails[exerciseIndex].sets];
+    const currentSet = updatedSets[setIndex];
+
+    if (currentSet.rp?.length) {
+      currentSet.rp = [{ value: "", time: 5 }];
+    } else {
+      currentSet.rp = [];
+    }
+
+    updatedSets[setIndex] = currentSet;
     updatedDetails[exerciseIndex].sets = updatedSets;
     setExerciseDetails(updatedDetails);
   };
 
   const addSet = (exerciseIndex: number) => {
     const updatedDetails = [...exerciseDetails];
-    updatedDetails[exerciseIndex].sets.push({ reps: "", weight: "" });
+    updatedDetails[exerciseIndex].sets.push({ reps: "", weight: "", rir: "", rp: [{ value: "", time: 5 }] });
     setExerciseDetails(updatedDetails);
   };
 
@@ -101,6 +156,20 @@ const ConfigureTrainingDayScreen = () => {
     const updatedSets = [...updatedDetails[exerciseIndex].sets];
     updatedSets.pop();
     updatedDetails[exerciseIndex].sets = updatedSets;
+    setExerciseDetails(updatedDetails);
+  };
+
+  const addRPField = (exerciseIndex: number, setIndex: number) => {
+    const updatedDetails = [...exerciseDetails];
+    const updatedSets = [...updatedDetails[exerciseIndex].sets];
+    updatedSets[setIndex].rp?.push({ value: "", time: 5 });
+    setExerciseDetails(updatedDetails);
+  };
+
+  const removeRPField = (exerciseIndex: number, setIndex: number, rpIndex: number) => {
+    const updatedDetails = [...exerciseDetails];
+    const updatedSets = [...updatedDetails[exerciseIndex].sets];
+    updatedSets[setIndex].rp?.splice(rpIndex, 1);
     setExerciseDetails(updatedDetails);
   };
 
@@ -115,29 +184,91 @@ const ConfigureTrainingDayScreen = () => {
           <View key={exerciseIndex} style={styles.exerciseContainer} testID={`exercise-${exercise.name}`}>
             <Text style={styles.exerciseName} testID={`exercise-name-${exercise.name}`}>{exercise.name}</Text>
             {exercise.sets.map((set, setIndex) => (
-              <View key={setIndex} style={styles.setRow} testID={`exercise-set-${exercise.name}-${setIndex}`}>
-                <Text style={styles.setText}>Set {setIndex + 1}</Text>
-                <NumberInput
-                  value={set.reps}
-                  onChangeText={(text) =>
-                    updateExerciseDetail(exerciseIndex, setIndex, "reps", text)
-                  }
-                  placeholder="Reps"
-                  testID={`input-reps-${exercise.name}-${setIndex}`}
-                />
-                <NumberInput
-                  value={set.weight}
-                  onChangeText={(text) =>
-                    updateExerciseDetail(
-                      exerciseIndex,
-                      setIndex,
-                      "weight",
-                      text
-                    )
-                  }
-                  placeholder="Peso"
-                  testID={`input-weight-${exercise.name}-${setIndex}`}
-                />
+              <View key={setIndex}>
+                <View style={styles.setRow} testID={`exercise-set-${exercise.name}-${setIndex}`}>
+                  <Text style={styles.setText}>Set {setIndex + 1}</Text>
+                  <NumberInput
+                    value={set.reps}
+                    onChangeText={(text) =>
+                      updateExerciseDetail(exerciseIndex, setIndex, "reps", text)
+                    }
+                    placeholder="Reps"
+                    testID={`input-reps-${exercise.name}-${setIndex}`}
+                  />
+                  <NumberInput
+                    value={set.weight}
+                    onChangeText={(text) =>
+                      updateExerciseDetail(
+                        exerciseIndex,
+                        setIndex,
+                        "weight",
+                        text
+                      )
+                    }
+                    placeholder="Peso"
+                    testID={`input-weight-${exercise.name}-${setIndex}`}
+                  />
+                  <NumberInput
+                    value={set.rir}
+                    onChangeText={(text) =>
+                      updateExerciseDetail(exerciseIndex, setIndex, "rir", text)
+                    }
+                    placeholder="RIR"
+                    testID={`input-rir-${exercise.name}-${setIndex}`}
+                  />
+                  <TouchableOpacity
+                    style={[styles.rpButton, buttonsActive[`${exerciseIndex}-${setIndex}`] ? styles.rpButtonActive : null]}
+                    onPress={() => toggleRP(exerciseIndex, setIndex)}
+                    testID={`button-rp-toggle-${exercise.name}-${setIndex}`}
+                  >
+                    <Text style={styles.rpButtonText}>RP</Text>
+                  </TouchableOpacity>
+                </View>
+                {buttonsActive[`${exerciseIndex}-${setIndex}`] && (
+                  <View>
+                    {set.rp?.map((rpDetail, rpIndex) => (
+                      <View key={rpIndex} style={styles.rpRow}>
+                        <NumberInput
+                          value={rpDetail.value}
+                          onChangeText={(text) =>
+                            updateExerciseDetail(exerciseIndex, setIndex, "rp", text, rpIndex)
+                          }
+                          placeholder={`RP ${rpIndex + 1}`}
+                          testID={`input-rp-${exercise.name}-${setIndex}-${rpIndex}`}
+                        />
+                        <Picker
+                          selectedValue={rpDetail.time}
+                          style={styles.timePicker}
+                          onValueChange={(itemValue) =>
+                            updateExerciseDetail(exerciseIndex, setIndex, "time", itemValue, rpIndex)
+                          }
+                          testID={`picker-rp-time-${exercise.name}-${setIndex}-${rpIndex}`}
+                        >
+                          {[5, 10, 15, 20, 25, 30].map((time) => (
+                            <Picker.Item key={time} label={`${time}"`} value={time} />
+                          ))}
+                        </Picker>
+                        {rpIndex === 0 ? (
+                          <TouchableOpacity
+                            style={styles.addButton}
+                            onPress={() => addRPField(exerciseIndex, setIndex)}
+                            testID={`button-add-rp-${exercise.name}-${setIndex}`}
+                          >
+                            <Ionicons name="add" size={24} color="#FFFFFF" />
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.removeButton}
+                            onPress={() => removeRPField(exerciseIndex, setIndex, rpIndex)}
+                            testID={`button-remove-rp-${exercise.name}-${setIndex}-${rpIndex}`}
+                          >
+                            <Ionicons name="remove" size={24} color="#FFFFFF" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             ))}
             <View style={styles.buttonRow}>
@@ -210,6 +341,18 @@ const styles = StyleSheet.create({
     color: "#A5A5A5",
     fontSize: 16,
   },
+  rpRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 10,
+  },
+  timePicker: {
+    width: 120,
+    color: "#FFFFFF",
+    backgroundColor: "#1F2940",
+    borderRadius: 5,
+  },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "center",
@@ -244,11 +387,27 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   disabledButton: {
-    backgroundColor: "#A5A5A5", // Color para el botón deshabilitado
+    backgroundColor: "#A5A5A5",
   },
   buttonText: {
     color: "#FFFFFF",
     fontSize: 18,
+    fontWeight: "bold",
+  },
+  rpButton: {
+    backgroundColor: "#A5A5A5",
+    width: 40,
+    height: 40,
+    borderRadius: 50,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  rpButtonActive: {
+    backgroundColor: "#2979FF",
+  },
+  rpButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
     fontWeight: "bold",
   },
 });

@@ -1,3 +1,13 @@
+/* Tests:
+* - should display the title and list of exercises
+* - should update reps and weight for Exercise 1
+* - should navigate to next exercise
+* - should update reps and weight for Exercise 2
+* - should navigate to previous exercise
+* - should save the session
+*/
+
+// __test__/rutina/sesion-de-entrenamiento.test.tsx
 import React from "react";
 import { render, waitFor, fireEvent } from "@testing-library/react-native";
 import { NavigationContainer } from "@react-navigation/native";
@@ -152,7 +162,7 @@ describe("TrainingSessionScreen", () => {
         await waitFor(() => {
             expect(StorageService.save).toHaveBeenCalledWith("routineDays", expect.arrayContaining([
                 expect.objectContaining({
-                    name: "Jueves",
+                    name: dayNames[currentDayIndex],
                     trainingDayName: "Training Day 1",
                     exerciseDetails: expect.arrayContaining([
                         expect.objectContaining({

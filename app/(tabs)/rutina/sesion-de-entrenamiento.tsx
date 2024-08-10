@@ -1,3 +1,5 @@
+// app/(tabs)/rutina/sesion-de-entrenamiento.tsx
+
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -16,10 +18,11 @@ import { currentDayIndex } from "@/constants/Dates";
 
 type ExerciseDetail = {
   name: string;
-  sets: { reps: string; weight: string }[];
+  sets: { reps: string; weight: string; rir?: string }[]; // Agregado el valor RIR
   image: string;
   performedReps?: string[];
   performedWeights?: string[];
+  performedRIR?: string[]; // Agregado para guardar el valor de RIR realizado
 };
 
 type HistoryEntry = {
@@ -46,6 +49,7 @@ const TrainingSessionScreen = () => {
               exercise.performedReps || exercise.sets.map((set) => ""),
             performedWeights:
               exercise.performedWeights || exercise.sets.map((set) => ""),
+            performedRIR: exercise.performedRIR || exercise.sets.map((set) => ""), // Inicializar RIR realizado
           })
         );
         setExerciseDetails(updatedExerciseDetails!);
@@ -56,9 +60,26 @@ const TrainingSessionScreen = () => {
   }, []);
 
   const handleSave = async () => {
+    // Asegurarse de que todos los valores performed* estén inicializados correctamente
+    const updatedExerciseDetails = exerciseDetails.map((exercise) => {
+      const updatedSets = exercise.sets.map((set, index) => ({
+        ...set,
+        performedReps: exercise.performedReps?.[index] || set.reps, // Usar reps si no se ha modificado
+        performedWeights: exercise.performedWeights?.[index] || set.weight, // Usar weight si no se ha modificado
+        performedRIR: exercise.performedRIR?.[index] || set.rir || "", // Usar RIR si no se ha modificado o vacío si no hay valor
+      }));
+
+      return {
+        ...exercise,
+        performedReps: updatedSets.map((set) => set.performedReps),
+        performedWeights: updatedSets.map((set) => set.performedWeights),
+        performedRIR: updatedSets.map((set) => set.performedRIR),
+      };
+    });
+
     const routineDays = await StorageService.load("routineDays");
     const updatedRoutineDays = routineDays?.map((d: Day) =>
-      d.name === day?.name ? { ...d, exerciseDetails, completed: true } : d
+      d.name === day?.name ? { ...d, exerciseDetails: updatedExerciseDetails, completed: true } : d
     );
 
     await StorageService.save("routineDays", updatedRoutineDays);
@@ -66,7 +87,7 @@ const TrainingSessionScreen = () => {
     const history = (await StorageService.load("history")) || [];
     const newHistoryEntry: HistoryEntry = {
       date: new Date().toLocaleDateString(),
-      exerciseDetails,
+      exerciseDetails: updatedExerciseDetails,
     };
     await StorageService.save("history", [...history, newHistoryEntry]);
 
@@ -88,6 +109,9 @@ const TrainingSessionScreen = () => {
     } else if (key === "performedWeights") {
       updatedExercise.performedWeights = updatedExercise.performedWeights ?? [];
       updatedExercise.performedWeights[setIndex] = value;
+    } else if (key === "performedRIR") {
+      updatedExercise.performedRIR = updatedExercise.performedRIR ?? [];
+      updatedExercise.performedRIR[setIndex] = value; // Manejo de RIR realizado
     }
 
     updatedDetails[exerciseIndex] = updatedExercise;
@@ -118,7 +142,7 @@ const TrainingSessionScreen = () => {
                 <View key={setIndex} style={styles.setRow}>
                   <Text style={styles.setText}>Set {setIndex + 1}</Text>
                   <View style={{ flex: 1, gap: 5 }}>
-                    <Text style={styles.setDetailText}>{set.reps}</Text>
+                    <Text style={styles.setDetailText}>Reps: {set.reps}</Text>
                     <NumberInput
                       value={currentExercise.performedReps?.[setIndex] || ""}
                       onChangeText={(text) =>
@@ -135,7 +159,7 @@ const TrainingSessionScreen = () => {
                     />
                   </View>
                   <View style={{ flex: 1, gap: 5 }}>
-                    <Text style={styles.setDetailText}>{set.weight} kg</Text>
+                    <Text style={styles.setDetailText}>Peso: {set.weight} kg</Text>
                     <NumberInput
                       value={currentExercise.performedWeights?.[setIndex] || ""}
                       onChangeText={(text) =>
@@ -149,6 +173,23 @@ const TrainingSessionScreen = () => {
                       placeholder="Peso"
                       defaultValue={set.weight}
                       testID={`input-weight-${currentExercise.name}-${setIndex}`}
+                    />
+                  </View>
+                  <View style={{ flex: 1, gap: 5 }}>
+                    <Text style={styles.setDetailText}>RIR: {set.rir}</Text>
+                    <NumberInput
+                      value={currentExercise.performedRIR?.[setIndex] || ""}
+                      onChangeText={(text) =>
+                        updatePerformedDetails(
+                          currentExerciseIndex,
+                          setIndex,
+                          "performedRIR",
+                          text
+                        )
+                      }
+                      placeholder="RIR"
+                      defaultValue={set.rir}
+                      testID={`input-rir-${currentExercise.name}-${setIndex}`}
                     />
                   </View>
                 </View>

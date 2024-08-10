@@ -1,3 +1,4 @@
+// app/(tabs)/rutina/historico.tsx
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { useLocalSearchParams } from "expo-router";
@@ -6,10 +7,11 @@ import { dayNames } from "@/constants/Dates";
 
 type ExerciseDetail = {
   name: string;
-  sets: { reps: string; weight: string }[];
+  sets: { reps: string; weight: string; rir?: string }[]; // Agregado el valor RIR
   image: string;
   performedReps?: string[];
   performedWeights?: string[];
+  performedRIR?: string[]; // Agregado para guardar el valor de RIR realizado
 };
 
 export type HistoryEntry = {
@@ -35,30 +37,35 @@ const HistoricoScreen = () => {
   }, [date]);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="historico-screen">
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        <Text style={styles.title}>
+        <Text style={styles.title} testID="historico-title">
           Histórico de {dayName} {date}
         </Text>
         {history?.map((entry, index) => (
-          <View key={index} style={styles.historyCard}>
+          <View key={index} style={styles.historyCard} testID={`historico-entry-${index}`}>
             {entry.exerciseDetails.map((exercise, exIndex) => (
-              <View key={exIndex} style={styles.exerciseCard}>
-                <Text style={styles.exerciseName}>{exercise.name}</Text>
+              <View key={exIndex} style={styles.exerciseCard} testID={`historico-exercise-${exercise.name}`}>
+                <Text style={styles.exerciseName} testID={`historico-exercise-name-${exercise.name}`}>
+                  {exercise.name}
+                </Text>
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Planificado</Text>
+                  <Text style={styles.sectionTitle} testID={`historico-section-planned-${exercise.name}`}>
+                    Planificado
+                  </Text>
                   {exercise.sets.map((set, setIndex) => (
-                    <Text key={setIndex} style={styles.exerciseInfo}>
-                      Set {setIndex + 1}: {set.reps} reps, {set.weight}kg
+                    <Text key={setIndex} style={styles.exerciseInfo} testID={`historico-set-planned-${exercise.name}-${setIndex}`}>
+                      Set {setIndex + 1}: {set.reps} reps, {set.weight}kg, RIR: {set.rir ?? "N/A"}
                     </Text>
                   ))}
                 </View>
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Realizado</Text>
+                  <Text style={styles.sectionTitle} testID={`historico-section-performed-${exercise.name}`}>
+                    Realizado
+                  </Text>
                   {exercise.performedReps?.map((rep, repIndex) => (
-                    <Text key={repIndex} style={styles.performedText}>
-                      Set {repIndex + 1}: {rep} reps,{" "}
-                      {exercise.performedWeights?.[repIndex]} kg
+                    <Text key={repIndex} style={styles.performedText} testID={`historico-set-performed-${exercise.name}-${repIndex}`}>
+                      Set {repIndex + 1}: {rep} reps, {exercise.performedWeights?.[repIndex]} kg, RIR: {exercise.performedRIR?.[repIndex] ?? "N/A"}
                     </Text>
                   ))}
                 </View>

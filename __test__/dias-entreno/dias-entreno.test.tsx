@@ -3,10 +3,8 @@
 * 1. should display the title and list of training days
 * 2. should navigate to add training day screen on button press
 * 3. should show edit and delete options for each training day
-* 
-* Not possible to test:
-* 1. The menu interaction to go to the edit screen
-* 2. The menu interaction to delete a training day
+* 4. should navigate to edit training day screen on menu option press
+* 5. should delete training day on menu option press
 */
 
 // __tests__/dias-entreno.test.tsx
