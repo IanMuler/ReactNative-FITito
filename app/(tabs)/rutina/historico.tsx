@@ -5,13 +5,43 @@ import { useLocalSearchParams } from "expo-router";
 import StorageService from "@/services/storage";
 import { dayNames } from "@/constants/Dates";
 
+type RPDetail = {
+  value: string;
+  time: number;
+};
+
+type DSDetail = {
+  reps: string;
+  peso: string;
+};
+
+type PartialDetail = {
+  reps: string;
+};
+
+type SetDetail = {
+  reps: string;
+  weight: string;
+  rir?: string;
+  rp?: RPDetail[];
+  ds?: DSDetail[];
+  partials?: PartialDetail;
+};
+
+type PerformedSetDetail = {
+  reps: string;
+  weight: string;
+  rir?: string;
+  rp?: RPDetail[];
+  ds?: DSDetail[];
+  partials?: PartialDetail;
+};
+
 type ExerciseDetail = {
   name: string;
-  sets: { reps: string; weight: string; rir?: string }[]; // Agregado el valor RIR
+  sets: SetDetail[];
   image: string;
-  performedReps?: string[];
-  performedWeights?: string[];
-  performedRIR?: string[]; // Agregado para guardar el valor de RIR realizado
+  performedSets?: PerformedSetDetail[];
 };
 
 export type HistoryEntry = {
@@ -54,19 +84,53 @@ const HistoricoScreen = () => {
                     Planificado
                   </Text>
                   {exercise.sets.map((set, setIndex) => (
-                    <Text key={setIndex} style={styles.exerciseInfo} testID={`historico-set-planned-${exercise.name}-${setIndex}`}>
-                      Set {setIndex + 1}: {set.reps} reps, {set.weight}kg, RIR: {set.rir ?? "N/A"}
-                    </Text>
+                    <View key={setIndex}>
+                      <Text style={styles.exerciseInfo} testID={`historico-set-planned-${exercise.name}-${setIndex}`}>
+                        Set {setIndex + 1}: {set.reps} reps, {set.weight}kg, RIR: {set.rir ?? "N/A"}
+                      </Text>
+                      {set.rp && set.rp.length > 0 && set.rp.map((rpDetail, rpIndex) => (
+                        <Text key={rpIndex} style={styles.exerciseInfo} testID={`historico-rp-planned-${exercise.name}-${rpIndex}`}>
+                          RP {rpIndex + 1}: {rpDetail.value} reps, Time: {rpDetail.time}"
+                        </Text>
+                      ))}
+                      {set.ds && set.ds.length > 0 && set.ds.map((dsDetail, dsIndex) => (
+                        <Text key={dsIndex} style={styles.exerciseInfo} testID={`historico-ds-planned-${exercise.name}-${dsIndex}`}>
+                          DS {dsIndex + 1}: {dsDetail.reps} reps, {dsDetail.peso} kg
+                        </Text>
+                      ))}
+                      {set.partials && (
+                        <Text style={styles.exerciseInfo} testID={`historico-partials-planned-${exercise.name}-${setIndex}`}>
+                          Partials: {set.partials.reps} reps
+                        </Text>
+                      )}
+                    </View>
                   ))}
                 </View>
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle} testID={`historico-section-performed-${exercise.name}`}>
                     Realizado
                   </Text>
-                  {exercise.performedReps?.map((rep, repIndex) => (
-                    <Text key={repIndex} style={styles.performedText} testID={`historico-set-performed-${exercise.name}-${repIndex}`}>
-                      Set {repIndex + 1}: {rep} reps, {exercise.performedWeights?.[repIndex]} kg, RIR: {exercise.performedRIR?.[repIndex] ?? "N/A"}
-                    </Text>
+                  {exercise.performedSets?.map((performedSet, setIndex) => (
+                    <View key={setIndex}>
+                      <Text style={styles.performedText} testID={`historico-set-performed-${exercise.name}-${setIndex}`}>
+                        Set {setIndex + 1}: {performedSet.reps} reps, {performedSet.weight} kg, RIR: {performedSet.rir ?? "N/A"}
+                      </Text>
+                      {performedSet.rp && performedSet.rp.length > 0 && performedSet.rp.map((rpDetail, rpIndex) => (
+                        <Text key={rpIndex} style={styles.performedText} testID={`historico-rp-performed-${exercise.name}-${rpIndex}`}>
+                          RP {rpIndex + 1}: {rpDetail.value} reps, Time: {rpDetail.time}"
+                        </Text>
+                      ))}
+                      {performedSet.ds && performedSet.ds.length > 0 && performedSet.ds.map((dsDetail, dsIndex) => (
+                        <Text key={dsIndex} style={styles.performedText} testID={`historico-ds-performed-${exercise.name}-${dsIndex}`}>
+                          DS {dsIndex + 1}: {dsDetail.reps} reps, {dsDetail.peso} kg
+                        </Text>
+                      ))}
+                      {performedSet.partials && (
+                        <Text style={styles.performedText} testID={`historico-partials-performed-${exercise.name}-${setIndex}`}>
+                          Partials: {performedSet.partials.reps} reps
+                        </Text>
+                      )}
+                    </View>
                   ))}
                 </View>
               </View>

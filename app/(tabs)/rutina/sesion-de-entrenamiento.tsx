@@ -1,5 +1,4 @@
 // app/(tabs)/rutina/sesion-de-entrenamiento.tsx
-
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -16,13 +15,43 @@ import StorageService from "@/services/storage";
 import { Day } from "./index";
 import { currentDayIndex } from "@/constants/Dates";
 
+type RPDetail = {
+  value: string;
+  time: number;
+};
+
+type DSDetail = {
+  reps: string;
+  peso: string;
+};
+
+type PartialDetail = {
+  reps: string;
+};
+
+type SetDetail = {
+  reps: string;
+  weight: string;
+  rir?: string;
+  rp?: RPDetail[];
+  ds?: DSDetail[];
+  partials?: PartialDetail;
+};
+
+type PerformedSetDetail = {
+  reps: string;
+  weight: string;
+  rir?: string;
+  rp?: RPDetail[];
+  ds?: DSDetail[];
+  partials?: PartialDetail;
+};
+
 type ExerciseDetail = {
   name: string;
-  sets: { reps: string; weight: string; rir?: string }[]; // Agregado el valor RIR
+  sets: SetDetail[];
   image: string;
-  performedReps?: string[];
-  performedWeights?: string[];
-  performedRIR?: string[]; // Agregado para guardar el valor de RIR realizado
+  performedSets?: PerformedSetDetail[];
 };
 
 type HistoryEntry = {
@@ -45,14 +74,17 @@ const TrainingSessionScreen = () => {
         const updatedExerciseDetails = currentDay.exerciseDetails?.map(
           (exercise: ExerciseDetail) => ({
             ...exercise,
-            performedReps:
-              exercise.performedReps || exercise.sets.map((set) => ""),
-            performedWeights:
-              exercise.performedWeights || exercise.sets.map((set) => ""),
-            performedRIR: exercise.performedRIR || exercise.sets.map((set) => ""), // Inicializar RIR realizado
+            performedSets: exercise.sets.map((set) => ({
+              reps: set.reps || "",
+              weight: set.weight || "",
+              rir: set.rir || "",
+              rp: set.rp?.map((rp) => ({ value: rp.value, time: rp.time })) || [],
+              ds: set.ds?.map((ds) => ({ reps: ds.reps, peso: ds.peso })) || [],
+              partials: set.partials ? { reps: set.partials.reps } : undefined,
+            })),
           })
-        );
-        setExerciseDetails(updatedExerciseDetails!);
+        ) as ExerciseDetail[];
+        setExerciseDetails(updatedExerciseDetails);
       }
     };
 
@@ -60,26 +92,9 @@ const TrainingSessionScreen = () => {
   }, []);
 
   const handleSave = async () => {
-    // Asegurarse de que todos los valores performed* estén inicializados correctamente
-    const updatedExerciseDetails = exerciseDetails.map((exercise) => {
-      const updatedSets = exercise.sets.map((set, index) => ({
-        ...set,
-        performedReps: exercise.performedReps?.[index] || set.reps, // Usar reps si no se ha modificado
-        performedWeights: exercise.performedWeights?.[index] || set.weight, // Usar weight si no se ha modificado
-        performedRIR: exercise.performedRIR?.[index] || set.rir || "", // Usar RIR si no se ha modificado o vacío si no hay valor
-      }));
-
-      return {
-        ...exercise,
-        performedReps: updatedSets.map((set) => set.performedReps),
-        performedWeights: updatedSets.map((set) => set.performedWeights),
-        performedRIR: updatedSets.map((set) => set.performedRIR),
-      };
-    });
-
     const routineDays = await StorageService.load("routineDays");
     const updatedRoutineDays = routineDays?.map((d: Day) =>
-      d.name === day?.name ? { ...d, exerciseDetails: updatedExerciseDetails, completed: true } : d
+      d.name === day?.name ? { ...d, exerciseDetails: exerciseDetails, completed: true } : d
     );
 
     await StorageService.save("routineDays", updatedRoutineDays);
@@ -87,7 +102,7 @@ const TrainingSessionScreen = () => {
     const history = (await StorageService.load("history")) || [];
     const newHistoryEntry: HistoryEntry = {
       date: new Date().toLocaleDateString(),
-      exerciseDetails: updatedExerciseDetails,
+      exerciseDetails: exerciseDetails,
     };
     await StorageService.save("history", [...history, newHistoryEntry]);
 
@@ -98,20 +113,52 @@ const TrainingSessionScreen = () => {
     exerciseIndex: number,
     setIndex: number,
     key: string,
-    value: string
+    value: string | number
   ) => {
     const updatedDetails = [...exerciseDetails];
     const updatedExercise = { ...updatedDetails[exerciseIndex] };
 
-    if (key === "performedReps") {
-      updatedExercise.performedReps = updatedExercise.performedReps ?? [];
-      updatedExercise.performedReps[setIndex] = value;
-    } else if (key === "performedWeights") {
-      updatedExercise.performedWeights = updatedExercise.performedWeights ?? [];
-      updatedExercise.performedWeights[setIndex] = value;
-    } else if (key === "performedRIR") {
-      updatedExercise.performedRIR = updatedExercise.performedRIR ?? [];
-      updatedExercise.performedRIR[setIndex] = value; // Manejo de RIR realizado
+    // Asegúrate de que performedSets esté inicializado
+    if (!updatedExercise.performedSets) {
+      updatedExercise.performedSets = updatedExercise.sets.map(() => ({} as PerformedSetDetail));
+    }
+
+    if (key === "reps") {
+      updatedExercise.performedSets[setIndex].reps = value as string;
+    } else if (key === "weight") {
+      updatedExercise.performedSets[setIndex].weight = value as string;
+    } else if (key === "rir") {
+      updatedExercise.performedSets[setIndex].rir = value as string;
+    } else if (key.startsWith("rpValue")) {
+      const rpIndex = parseInt(key.split("-")[1], 10);
+      updatedExercise.performedSets[setIndex].rp = updatedExercise.performedSets[setIndex].rp ?? [];
+      updatedExercise.performedSets[setIndex].rp![rpIndex] = {
+        ...(updatedExercise.performedSets[setIndex].rp![rpIndex] || {}),
+        value: value as string,
+      };
+    } else if (key.startsWith("rpTime")) {
+      const rpIndex = parseInt(key.split("-")[1], 10);
+      updatedExercise.performedSets[setIndex].rp = updatedExercise.performedSets[setIndex].rp ?? [];
+      updatedExercise.performedSets[setIndex].rp![rpIndex] = {
+        ...(updatedExercise.performedSets[setIndex].rp![rpIndex] || {}),
+        time: value as number,
+      };
+    } else if (key.startsWith("dsReps")) {
+      const dsIndex = parseInt(key.split("-")[1], 10);
+      updatedExercise.performedSets[setIndex].ds = updatedExercise.performedSets[setIndex].ds ?? [];
+      updatedExercise.performedSets[setIndex].ds![dsIndex] = {
+        ...(updatedExercise.performedSets[setIndex].ds![dsIndex] || {}),
+        reps: value as string,
+      };
+    } else if (key.startsWith("dsPeso")) {
+      const dsIndex = parseInt(key.split("-")[1], 10);
+      updatedExercise.performedSets[setIndex].ds = updatedExercise.performedSets[setIndex].ds ?? [];
+      updatedExercise.performedSets[setIndex].ds![dsIndex] = {
+        ...(updatedExercise.performedSets[setIndex].ds![dsIndex] || {}),
+        peso: value as string,
+      };
+    } else if (key === "partials") {
+      updatedExercise.performedSets[setIndex].partials = { reps: value as string };
     }
 
     updatedDetails[exerciseIndex] = updatedExercise;
@@ -141,56 +188,151 @@ const TrainingSessionScreen = () => {
               {currentExercise.sets.map((set, setIndex) => (
                 <View key={setIndex} style={styles.setRow}>
                   <Text style={styles.setText}>Set {setIndex + 1}</Text>
-                  <View style={{ flex: 1, gap: 5 }}>
-                    <Text style={styles.setDetailText}>Reps: {set.reps}</Text>
-                    <NumberInput
-                      value={currentExercise.performedReps?.[setIndex] || ""}
-                      onChangeText={(text) =>
-                        updatePerformedDetails(
-                          currentExerciseIndex,
-                          setIndex,
-                          "performedReps",
-                          text
-                        )
-                      }
-                      placeholder="Reps"
-                      defaultValue={set.reps}
-                      testID={`input-reps-${currentExercise.name}-${setIndex}`}
-                    />
-                  </View>
-                  <View style={{ flex: 1, gap: 5 }}>
-                    <Text style={styles.setDetailText}>Peso: {set.weight} kg</Text>
-                    <NumberInput
-                      value={currentExercise.performedWeights?.[setIndex] || ""}
-                      onChangeText={(text) =>
-                        updatePerformedDetails(
-                          currentExerciseIndex,
-                          setIndex,
-                          "performedWeights",
-                          text
-                        )
-                      }
-                      placeholder="Peso"
-                      defaultValue={set.weight}
-                      testID={`input-weight-${currentExercise.name}-${setIndex}`}
-                    />
-                  </View>
-                  <View style={{ flex: 1, gap: 5 }}>
-                    <Text style={styles.setDetailText}>RIR: {set.rir}</Text>
-                    <NumberInput
-                      value={currentExercise.performedRIR?.[setIndex] || ""}
-                      onChangeText={(text) =>
-                        updatePerformedDetails(
-                          currentExerciseIndex,
-                          setIndex,
-                          "performedRIR",
-                          text
-                        )
-                      }
-                      placeholder="RIR"
-                      defaultValue={set.rir}
-                      testID={`input-rir-${currentExercise.name}-${setIndex}`}
-                    />
+                  <View style={{ flexDirection: "column", gap: 10, flex: 1 }}>
+                    <View style={{ flexDirection: "row", gap: 10 }}>
+                      <View style={{ flex: 1, gap: 5 }}>
+                        <Text style={styles.setDetailText}>Reps: {set.reps}</Text>
+                        <NumberInput
+                          value={currentExercise.performedSets?.[setIndex]?.reps || ""}
+                          onChangeText={(text) =>
+                            updatePerformedDetails(
+                              currentExerciseIndex,
+                              setIndex,
+                              "reps",
+                              text
+                            )
+                          }
+                          placeholder="Reps"
+                          defaultValue={set.reps}
+                          testID={`input-reps-${currentExercise.name}-${setIndex}`}
+                        />
+                      </View>
+                      <View style={{ flex: 1, gap: 5 }}>
+                        <Text style={styles.setDetailText}>Peso: {set.weight} kg</Text>
+                        <NumberInput
+                          value={currentExercise.performedSets?.[setIndex]?.weight || ""}
+                          onChangeText={(text) =>
+                            updatePerformedDetails(
+                              currentExerciseIndex,
+                              setIndex,
+                              "weight",
+                              text
+                            )
+                          }
+                          placeholder="Peso"
+                          defaultValue={set.weight}
+                          testID={`input-weight-${currentExercise.name}-${setIndex}`}
+                        />
+                      </View>
+                      <View style={{ flex: 1, gap: 5 }}>
+                        <Text style={styles.setDetailText}>RIR: {set.rir}</Text>
+                        <NumberInput
+                          value={currentExercise.performedSets?.[setIndex]?.rir || ""}
+                          onChangeText={(text) =>
+                            updatePerformedDetails(
+                              currentExerciseIndex,
+                              setIndex,
+                              "rir",
+                              text
+                            )
+                          }
+                          placeholder="RIR"
+                          defaultValue={set.rir}
+                          testID={`input-rir-${currentExercise.name}-${setIndex}`}
+                        />
+                      </View>
+                    </View>
+                    <View style={{ width: "60%", alignSelf: "center", gap: 5 }}>
+                      {set.partials && (
+                        <View style={{ flexDirection: "row", gap: 10 }}>
+                          <View style={{ flex: 1, gap: 5 }}>
+                            <Text style={styles.setDetailText}>Partials reps: {set.partials.reps}</Text>
+                            <NumberInput
+                              value={currentExercise.performedSets?.[setIndex]?.partials?.reps || ""}
+                              onChangeText={(text) =>
+                                updatePerformedDetails(
+                                  currentExerciseIndex,
+                                  setIndex,
+                                  "partials",
+                                  text
+                                )
+                              }
+                              placeholder="Partials Reps"
+                              defaultValue={set.partials.reps}
+                              testID={`input-partials-reps-${currentExercise.name}-${setIndex}`}
+                            />
+                          </View>
+                        </View>
+                      )}
+                      {set.rp && set.rp.length > 0 && (
+                        set.rp.map((rpDetail, rpIndex) => (
+                          <View key={rpIndex} style={{ flexDirection: "row", gap: 10 }}>
+                            <View style={{ flex: 1, gap: 5, alignItems: "center" }}>
+                              <View style={{ flexDirection: "row", gap: 5 }}>
+                                <Text style={styles.setDetailText}>RP reps: {rpDetail.value}</Text>
+                                <Text style={styles.setDetailText}>Time: {rpDetail.time}"</Text>
+                              </View>
+                              <NumberInput
+                                value={currentExercise.performedSets?.[setIndex]?.rp?.[rpIndex]?.value || ""}
+                                onChangeText={(text) =>
+                                  updatePerformedDetails(
+                                    currentExerciseIndex,
+                                    setIndex,
+                                    `rpValue-${rpIndex}`,
+                                    text
+                                  )
+                                }
+                                placeholder="RP"
+                                defaultValue={rpDetail.value}
+                                testID={`input-rp-${currentExercise.name}-${setIndex}-${rpIndex}`}
+                              />
+                            </View>
+                          </View>
+                        ))
+                      )}
+                      {set.ds && set.ds.length > 0 && (
+                        set.ds.map((dsDetail, dsIndex) => (
+                          <View key={dsIndex} style={{ flexDirection: "row", gap: 10 }}>
+                            <View style={{ flexDirection: "row", gap: 10, flex: 1 }}>
+                              <View style={{ width: "50%", gap: 5 }}>
+                                <Text style={styles.setDetailText}>DS Reps: {dsDetail.reps}</Text>
+                                <NumberInput
+                                  value={currentExercise.performedSets?.[setIndex]?.ds?.[dsIndex]?.reps || ""}
+                                  onChangeText={(text) =>
+                                    updatePerformedDetails(
+                                      currentExerciseIndex,
+                                      setIndex,
+                                      `dsReps-${dsIndex}`,
+                                      text
+                                    )
+                                  }
+                                  placeholder="DS Reps"
+                                  defaultValue={dsDetail.reps}
+                                  testID={`input-ds-reps-${currentExercise.name}-${setIndex}-${dsIndex}`}
+                                />
+                              </View>
+                              <View style={{ width: "50%", gap: 5 }}>
+                                <Text style={styles.setDetailText}>DS Peso: {dsDetail.peso} kg</Text>
+                                <NumberInput
+                                  value={currentExercise.performedSets?.[setIndex]?.ds?.[dsIndex]?.peso || ""}
+                                  onChangeText={(text) =>
+                                    updatePerformedDetails(
+                                      currentExerciseIndex,
+                                      setIndex,
+                                      `dsPeso-${dsIndex}`,
+                                      text
+                                    )
+                                  }
+                                  placeholder="DS Peso"
+                                  defaultValue={dsDetail.peso}
+                                  testID={`input-ds-peso-${currentExercise.name}-${setIndex}-${dsIndex}`}
+                                />
+                              </View>
+                            </View>
+                          </View>
+                        ))
+                      )}
+                    </View>
                   </View>
                 </View>
               ))}
