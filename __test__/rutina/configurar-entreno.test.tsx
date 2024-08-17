@@ -5,7 +5,10 @@
 * - should disable save button when any input is empty
 * - should add a set
 * - should remove a set
-* - should save the training day with updated values
+* - should add and remove RP field
+* - should add and remove DS field
+* - should add and remove Partials field
+* - should save the training day with RP, DS, and Partials
 */
 
 // __tests__/configurar-entreno.test.tsx
@@ -39,7 +42,7 @@ const mockStorageService = {
                     exerciseDetails: [
                         {
                             name: "Exercise 1",
-                            sets: [{ reps: "10", weight: "50" }],
+                            sets: [{ reps: "10", weight: "50", rir: "2" }],
                             image: "http://example.com/ex1.png",
                         },
                     ],
@@ -96,6 +99,7 @@ describe("ConfigureTrainingDayScreen", () => {
             expect(screen.getByTestId("exercise-Exercise 1")).toBeTruthy();
             expect(screen.getByTestId("input-reps-Exercise 1-0")).toHaveProp("value", "10");
             expect(screen.getByTestId("input-weight-Exercise 1-0")).toHaveProp("value", "50");
+            expect(screen.getByTestId("input-rir-Exercise 1-0")).toHaveProp("value", "2");
         });
     });
 
@@ -129,6 +133,7 @@ describe("ConfigureTrainingDayScreen", () => {
         await waitFor(() => {
             expect(screen.getByTestId("input-reps-Exercise 1-1")).toBeTruthy();
             expect(screen.getByTestId("input-weight-Exercise 1-1")).toBeTruthy();
+            expect(screen.getByTestId("input-rir-Exercise 1-1")).toBeTruthy();
         });
     });
 
@@ -146,24 +151,95 @@ describe("ConfigureTrainingDayScreen", () => {
         await waitFor(() => {
             expect(screen.queryByTestId("input-reps-Exercise 1-1")).toBeNull();
             expect(screen.queryByTestId("input-weight-Exercise 1-1")).toBeNull();
+            expect(screen.queryByTestId("input-rir-Exercise 1-1")).toBeNull();
         });
     });
 
-    test("should save the training day with updated values", async () => {
+    test("should add and remove RP field", async () => {
         renderWithProviders(<ConfigureTrainingDayScreen />);
 
-        // Update the values of the exercise details
         await waitFor(() => {
-            fireEvent.changeText(screen.getByTestId("input-reps-Exercise 1-0"), "15");
-            fireEvent.changeText(screen.getByTestId("input-weight-Exercise 1-0"), "60");
+            fireEvent.press(screen.getByTestId("button-rp-toggle-Exercise 1-0"));
         });
 
-        // Save the training day
+        await waitFor(() => {
+            expect(screen.getByTestId("input-rp-Exercise 1-0-0")).toBeTruthy();
+        });
+
+        await waitFor(() => {
+            fireEvent.press(screen.getByTestId("button-rp-toggle-Exercise 1-0"));
+        });
+
+        await waitFor(() => {
+            expect(screen.queryByTestId("input-rp-Exercise 1-0-0")).toBeNull();
+        });
+    });
+
+    test("should add and remove DS field", async () => {
+        renderWithProviders(<ConfigureTrainingDayScreen />);
+
+        await waitFor(() => {
+            fireEvent.press(screen.getByTestId("button-ds-toggle-Exercise 1-0"));
+        });
+
+        await waitFor(() => {
+            expect(screen.getByTestId("input-ds-reps-Exercise 1-0-0")).toBeTruthy();
+            expect(screen.getByTestId("input-ds-peso-Exercise 1-0-0")).toBeTruthy();
+        });
+
+        await waitFor(() => {
+            fireEvent.press(screen.getByTestId("button-ds-toggle-Exercise 1-0"));
+        });
+
+        await waitFor(() => {
+            expect(screen.queryByTestId("input-ds-reps-Exercise 1-0-0")).toBeNull();
+            expect(screen.queryByTestId("input-ds-peso-Exercise 1-0-0")).toBeNull();
+        });
+    });
+
+    test("should add and remove Partials field", async () => {
+        renderWithProviders(<ConfigureTrainingDayScreen />);
+
+        await waitFor(() => {
+            fireEvent.press(screen.getByTestId("button-p-toggle-Exercise 1-0"));
+        });
+
+        await waitFor(() => {
+            expect(screen.getByTestId("input-partials-reps-Exercise 1-0")).toBeTruthy();
+            fireEvent.changeText(screen.getByTestId("input-partials-reps-Exercise 1-0"), "3");
+        });
+
+        await waitFor(() => {
+            fireEvent.press(screen.getByTestId("button-p-toggle-Exercise 1-0"));
+        });
+
+        await waitFor(() => {
+            expect(screen.queryByTestId("input-partials-reps-Exercise 1-0")).toBeNull();
+        });
+    });
+
+    test("should save the training day with RP, DS, and Partials", async () => {
+        renderWithProviders(<ConfigureTrainingDayScreen />);
+
+        await waitFor(() => {
+            fireEvent.press(screen.getByTestId("button-rp-toggle-Exercise 1-0"));
+            fireEvent.press(screen.getByTestId("button-ds-toggle-Exercise 1-0"));
+            fireEvent.press(screen.getByTestId("button-p-toggle-Exercise 1-0"));
+        });
+
+        await waitFor(() => {
+            fireEvent.changeText(screen.getByTestId("input-rp-Exercise 1-0-0"), "RP1");
+            fireEvent.changeText(screen.getByTestId("input-reps-Exercise 1-0"), "15");
+            fireEvent.changeText(screen.getByTestId("input-weight-Exercise 1-0"), "60");
+            fireEvent.changeText(screen.getByTestId("input-ds-reps-Exercise 1-0-0"), "5");
+            fireEvent.changeText(screen.getByTestId("input-ds-peso-Exercise 1-0-0"), "30");
+            fireEvent.changeText(screen.getByTestId("input-partials-reps-Exercise 1-0"), "3");
+        });
+
         await waitFor(() => {
             fireEvent.press(screen.getByTestId("button-save"));
         });
 
-        // Verify the updated values are saved
         await waitFor(() => {
             expect(StorageService.save).toHaveBeenCalledWith("routineDays", expect.arrayContaining([
                 expect.objectContaining({
@@ -173,7 +249,13 @@ describe("ConfigureTrainingDayScreen", () => {
                         expect.objectContaining({
                             name: "Exercise 1",
                             sets: expect.arrayContaining([
-                                expect.objectContaining({ reps: "15", weight: "60" }),
+                                expect.objectContaining({
+                                    reps: "15",
+                                    weight: "60",
+                                    rp: expect.arrayContaining([{ value: "RP1", time: 5 }]),
+                                    ds: expect.arrayContaining([{ reps: "5", peso: "30" }]),
+                                    partials: { reps: "3" }
+                                }),
                             ]),
                         }),
                     ]),

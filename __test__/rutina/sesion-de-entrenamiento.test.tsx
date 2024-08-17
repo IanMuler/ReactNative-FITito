@@ -1,10 +1,11 @@
 /* Tests:
 * - should display the title and list of exercises
-* - should update reps and weight for Exercise 1
+* - should update reps, weight, and RIR for Exercise 1
 * - should navigate to next exercise
-* - should update reps and weight for Exercise 2
+* - should update reps, weight, and RIR for Exercise 2
+* - should add and update RP, DS, and Partials for Exercise 1
 * - should navigate to previous exercise
-* - should save the session
+* - should save the session with RP, DS, Partials, and RIR
 */
 
 // __test__/rutina/sesion-de-entrenamiento.test.tsx
@@ -34,8 +35,15 @@ const mockStorageService = {
             const routineDays: Day[] = dayNames.map((name) => ({ name, rest: false }));
             routineDays[currentDayIndex].trainingDayName = "Training Day 1";
             routineDays[currentDayIndex].exerciseDetails = [
-                { name: "Exercise 1", sets: [{ reps: "10", weight: "50" }], image: "http://example.com/ex1.png" },
-                { name: "Exercise 2", sets: [{ reps: "12", weight: "60" }], image: "http://example.com/ex2.png" },
+                {
+                    name: "Exercise 1", sets: [{
+                        reps: "10", weight: "50", rir: "2", rp: [{ value: "RP1", time: 5 }], ds: [{ reps: "5", peso: "30" }], partials: { reps: "3" }
+                    }], image: "http://example.com/ex1.png"
+                },
+                {
+                    name: "Exercise 2", sets: [{ reps: "12", weight: "60", rir: "3", rp: [{ value: "RP2", time: 6 }], ds: [{ reps: "6", peso: "40" }], partials: { reps: "4" } }
+                    ], image: "http://example.com/ex2.png"
+                },
             ];
 
             return routineDays;
@@ -70,28 +78,30 @@ describe("TrainingSessionScreen", () => {
             expect(getByTestId("exercise-image-Exercise 1")).toBeTruthy();
             expect(getByTestId("input-reps-Exercise 1-0")).toBeTruthy();
             expect(getByTestId("input-weight-Exercise 1-0")).toBeTruthy();
+            expect(getByTestId("input-rir-Exercise 1-0")).toBeTruthy();
         });
     });
 
-    test("should update reps and weight for Exercise 1", async () => {
+    test("should update reps, weight, and RIR for Exercise 1", async () => {
         const { getByTestId } = renderWithProviders(<TrainingSessionScreen />);
 
         await waitFor(() => {
             fireEvent.changeText(getByTestId("input-reps-Exercise 1-0"), "12");
             fireEvent.changeText(getByTestId("input-weight-Exercise 1-0"), "55");
+            fireEvent.changeText(getByTestId("input-rir-Exercise 1-0"), "3");
         });
 
         expect(getByTestId("input-reps-Exercise 1-0").props.value).toBe("12");
         expect(getByTestId("input-weight-Exercise 1-0").props.value).toBe("55");
+        expect(getByTestId("input-rir-Exercise 1-0").props.value).toBe("3");
     });
 
     test("should navigate to next exercise", async () => {
         const { getByTestId, getByText } = renderWithProviders(<TrainingSessionScreen />);
 
-        //Wait for the screen to load
         await waitFor(() => {
             expect(getByText("Training Day 1")).toBeTruthy();
-        })
+        });
 
         fireEvent.press(getByTestId("button-next"));
 
@@ -100,10 +110,9 @@ describe("TrainingSessionScreen", () => {
         });
     });
 
-    test("should update reps and weight for Exercise 2", async () => {
+    test("should update reps, weight, and RIR for Exercise 2", async () => {
         const { getByTestId, getByText } = renderWithProviders(<TrainingSessionScreen />);
 
-        //Wait for the screen to load
         await waitFor(() => {
             expect(getByText("Training Day 1")).toBeTruthy();
         });
@@ -117,45 +126,65 @@ describe("TrainingSessionScreen", () => {
         await waitFor(() => {
             fireEvent.changeText(getByTestId("input-reps-Exercise 2-0"), "14");
             fireEvent.changeText(getByTestId("input-weight-Exercise 2-0"), "65");
+            fireEvent.changeText(getByTestId("input-rir-Exercise 2-0"), "4");
         });
 
         expect(getByTestId("input-reps-Exercise 2-0").props.value).toBe("14");
         expect(getByTestId("input-weight-Exercise 2-0").props.value).toBe("65");
+        expect(getByTestId("input-rir-Exercise 2-0").props.value).toBe("4");
+    });
+
+    test("should add and update RP, DS, and Partials for Exercise 1", async () => {
+        const { getByTestId } = renderWithProviders(<TrainingSessionScreen />);
+
+        await waitFor(() => {
+            fireEvent.changeText(getByTestId("input-rp-Exercise 1-0-0"), "RP1");
+            fireEvent.changeText(getByTestId("input-ds-reps-Exercise 1-0-0"), "5");
+            fireEvent.changeText(getByTestId("input-ds-peso-Exercise 1-0-0"), "30");
+            fireEvent.changeText(getByTestId("input-partials-reps-Exercise 1-0"), "3");
+        });
+
+        expect(getByTestId("input-rp-Exercise 1-0-0").props.value).toBe("RP1");
+        expect(getByTestId("input-ds-reps-Exercise 1-0-0").props.value).toBe("5");
+        expect(getByTestId("input-ds-peso-Exercise 1-0-0").props.value).toBe("30");
+        expect(getByTestId("input-partials-reps-Exercise 1-0").props.value).toBe("3");
     });
 
     test("should navigate to previous exercise", async () => {
-        const { getByText } = renderWithProviders(<TrainingSessionScreen />);
+        const { getByText, getByTestId } = renderWithProviders(<TrainingSessionScreen />);
 
-        //Wait for the screen to load
         await waitFor(() => {
             expect(getByText("Training Day 1")).toBeTruthy();
-        })
+        });
 
-        fireEvent.press(getByText("Siguiente"));
+        fireEvent.press(getByTestId("button-next"));
 
         await waitFor(() => {
             expect(getByText("Exercise 2")).toBeTruthy();
         });
 
-        fireEvent.press(getByText("Anterior"));
+        fireEvent.press(getByTestId("button-previous"));
 
         await waitFor(() => {
             expect(getByText("Exercise 1")).toBeTruthy();
         });
     });
 
-    test("should save the session", async () => {
-        const { getByTestId, getByText } = renderWithProviders(<TrainingSessionScreen />);
+    test("should save the session with RP, DS, Partials, and RIR", async () => {
+        const { getByTestId } = renderWithProviders(<TrainingSessionScreen />);
+        // RP, DS, and Partials loaded on mockStorageService.load
 
         await waitFor(() => {
             fireEvent.changeText(getByTestId("input-reps-Exercise 1-0"), "12");
             fireEvent.changeText(getByTestId("input-weight-Exercise 1-0"), "55");
-            fireEvent.press(getByText("Siguiente"));
+            fireEvent.changeText(getByTestId("input-rir-Exercise 1-0"), "3");
+            fireEvent.press(getByTestId("button-next"));
         });
 
         await waitFor(() => {
             fireEvent.changeText(getByTestId("input-reps-Exercise 2-0"), "14");
             fireEvent.changeText(getByTestId("input-weight-Exercise 2-0"), "65");
+            fireEvent.changeText(getByTestId("input-rir-Exercise 2-0"), "4");
             fireEvent.press(getByTestId("button-finish"));
         });
 
@@ -168,18 +197,31 @@ describe("TrainingSessionScreen", () => {
                         expect.objectContaining({
                             name: "Exercise 1",
                             sets: expect.arrayContaining([
-                                expect.objectContaining({ reps: "10", weight: "50" }),
+                                expect.objectContaining({ reps: "10", weight: "50", rir: "2" }),
                             ]),
-                            performedReps: ["12"],
-                            performedWeights: ["55"],
+                            performedSets: expect.arrayContaining([
+                                expect.objectContaining({
+                                    reps: "12",
+                                    weight: "55",
+                                    rir: "3",
+                                    rp: expect.arrayContaining([{ value: "RP1", time: 5 }]),
+                                    ds: expect.arrayContaining([{ reps: "5", peso: "30" }]),
+                                    partials: { reps: "3" },
+                                }),
+                            ]),
                         }),
                         expect.objectContaining({
                             name: "Exercise 2",
                             sets: expect.arrayContaining([
-                                expect.objectContaining({ reps: "12", weight: "60" }),
+                                expect.objectContaining({ reps: "12", weight: "60", rir: "3" }),
                             ]),
-                            performedReps: ["14"],
-                            performedWeights: ["65"],
+                            performedSets: expect.arrayContaining([
+                                expect.objectContaining({
+                                    reps: "14",
+                                    weight: "65",
+                                    rir: "4",
+                                }),
+                            ]),
                         }),
                     ]),
                     completed: true,
@@ -191,19 +233,26 @@ describe("TrainingSessionScreen", () => {
                     exerciseDetails: expect.arrayContaining([
                         expect.objectContaining({
                             name: "Exercise 1",
-                            sets: expect.arrayContaining([
-                                expect.objectContaining({ reps: "10", weight: "50" }),
+                            performedSets: expect.arrayContaining([
+                                expect.objectContaining({
+                                    reps: "12",
+                                    weight: "55",
+                                    rir: "3",
+                                    rp: expect.arrayContaining([{ value: "RP1", time: 5 }]),
+                                    ds: expect.arrayContaining([{ reps: "5", peso: "30" }]),
+                                    partials: { reps: "3" },
+                                }),
                             ]),
-                            performedReps: ["12"],
-                            performedWeights: ["55"],
                         }),
                         expect.objectContaining({
                             name: "Exercise 2",
-                            sets: expect.arrayContaining([
-                                expect.objectContaining({ reps: "12", weight: "60" }),
+                            performedSets: expect.arrayContaining([
+                                expect.objectContaining({
+                                    reps: "14",
+                                    weight: "65",
+                                    rir: "4",
+                                }),
                             ]),
-                            performedReps: ["14"],
-                            performedWeights: ["65"],
                         }),
                     ]),
                 }),
@@ -211,6 +260,4 @@ describe("TrainingSessionScreen", () => {
             expect(mockRouter.push).toHaveBeenCalledWith("/(tabs)/rutina");
         });
     });
-
-
 });
